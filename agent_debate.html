@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Debate</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent-a: #ff6b35;
+    --accent-b: #4ecdc4;
+    --accent-c: #a855f7;
+    --accent-judge: #f7c948;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --card: #14141f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(78,205,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(78,205,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b), var(--accent-c));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Input section */
+  .input-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-a), var(--accent-b), var(--accent-c));
+  }
+
+  .input-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 16px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  textarea:focus { border-color: var(--accent-b); }
+  textarea::placeholder { color: var(--muted); }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .rounds-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .rounds-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .btn-debate {
+    margin-left: auto;
+    background: linear-gradient(135deg, var(--accent-a), #ff8c5a);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-debate:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-debate:active { transform: translateY(0); }
+  .btn-debate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Agent headers */
+  .agents-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .agent-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .agent-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .agent-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .agent-role {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  /* Debate arena */
+  #debate-arena { display: none; }
+
+  .round-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 16px;
+    opacity: 0;
+    animation: fadeSlideIn 0.4s forwards;
+  }
+
+  .round-badge {
+    background: var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    color: var(--muted);
+  }
+
+  .round-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    opacity: 0;
+    animation: fadeSlideIn 0.4s forwards;
+  }
+
+  .message.agent-b { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg-body { max-width: 78%; }
+
+  .msg-name {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: var(--muted);
+  }
+
+  .message.agent-b .msg-name { text-align: right; }
+
+  .msg-bubble {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .message.agent-a .msg-bubble { border-left: 2px solid var(--accent-a); }
+  .message.agent-b .msg-bubble { border-right: 2px solid var(--accent-b); }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 6px 4px;
+    align-items: center;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+  /* Judge verdict */
+  .verdict-card {
+    background: var(--card);
+    border: 1px solid var(--accent-judge);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-top: 28px;
+    position: relative;
+    opacity: 0;
+    animation: fadeSlideIn 0.5s forwards;
+  }
+
+  .verdict-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-judge);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .verdict-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .verdict-icon {
+    width: 32px; height: 32px;
+    background: rgba(247,201,72,0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .verdict-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-judge);
+  }
+
+  .verdict-text {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .verdict-text strong {
+    color: var(--accent-judge);
+    font-weight: 600;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .status-bar.visible { display: flex; }
+
+  .status-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-b);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--accent-a);
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* Reset button */
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    margin-top: 20px;
+  }
+  .btn-reset:hover { border-color: var(--accent-a); color: var(--accent-a); }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-5px); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Example pills */
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .example-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .example-pill:hover { border-color: var(--accent-b); color: var(--accent-b); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">Multi-Agent System</div>
+    <h1>DEBATE ENGINE</h1>
+    <p class="subtitle">Two agents argue. A judge decides. You get clarity.</p>
+  </header>
+
+  <div class="input-section">
+    <label class="input-label">Your decision / research question</label>
+    <textarea id="question" rows="3" placeholder="e.g. Should I do an MBA or keep growing in tech for the next 3 years?"></textarea>
+    <div class="examples">
+      <span class="example-pill" onclick="setExample(this)">MBA vs staying in tech</span>
+      <span class="example-pill" onclick="setExample(this)">Start a business now vs save capital first</span>
+      <span class="example-pill" onclick="setExample(this)">Move abroad vs build career in India</span>
+      <span class="example-pill" onclick="setExample(this)">Freelancing vs full-time job</span>
+      <span class="example-pill" onclick="setExample(this)">Buy a house now vs invest in stocks</span>
+    </div>
+    <div class="controls">
+      <span class="rounds-label">Rounds:</span>
+      <select class="rounds-select" id="rounds">
+        <option value="1">1 round</option>
+        <option value="2" selected>2 rounds</option>
+        <option value="3">3 rounds</option>
+      </select>
+      <button class="btn-debate" id="startBtn" onclick="startDebate()">⚡ Start Debate</button>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="agents-row">
+    <div class="agent-pill">
+      <div class="agent-dot" style="background:var(--accent-a)"></div>
+      <div>
+        <div class="agent-name" style="color:var(--accent-a)">AGENT ALPHA</div>
+        <div class="agent-role">Devil's Advocate · Challenges assumptions</div>
+      </div>
+    </div>
+    <div class="agent-pill">
+      <div class="agent-dot" style="background:var(--accent-b)"></div>
+      <div>
+        <div class="agent-name" style="color:var(--accent-b)">AGENT BETA</div>
+        <div class="agent-role">Pragmatist · Defends conventional wisdom</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <div class="status-spinner"></div>
+    <span id="statusText">Initialising agents...</span>
+  </div>
+
+  <div id="debate-arena"></div>
+</div>
+
+<script>
+const API = "http://your-ec2-ip:3001/api/chat";
+const MODEL = "claude-sonnet-4-20250514";
+
+function setExample(el) {
+  document.getElementById('question').value = el.textContent;
+}
+
+function setStatus(msg) {
+  const bar = document.getElementById('statusBar');
+  bar.classList.add('visible');
+  document.getElementById('statusText').textContent = msg;
+}
+
+function hideStatus() {
+  document.getElementById('statusBar').classList.remove('visible');
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function appendRoundHeader(round, total) {
+  const arena = document.getElementById('debate-arena');
+  const div = document.createElement('div');
+  div.className = 'round-header';
+  div.style.animationDelay = '0s';
+  div.innerHTML = `
+    <div class="round-badge">Round ${round} of ${total}</div>
+    <div class="round-line"></div>
+  `;
+  arena.appendChild(div);
+}
+
+function appendMessage(agent, name, text, delay = 0) {
+  const arena = document.getElementById('debate-arena');
+  const div = document.createElement('div');
+  div.className = `message ${agent}`;
+  div.style.animationDelay = `${delay}s`;
+
+  const color = agent === 'agent-a' ? 'var(--accent-a)' : 'var(--accent-b)';
+  const initial = agent === 'agent-a' ? 'Aα' : 'Bβ';
+
+  div.innerHTML = `
+    <div class="msg-avatar" style="background:${color}22; color:${color};">${initial}</div>
+    <div class="msg-body">
+      <div class="msg-name">${name}</div>
+      <div class="msg-bubble">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+    </div>
+  `;
+  arena.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function appendVerdict(text, delay = 0) {
+  const arena = document.getElementById('debate-arena');
+  const div = document.createElement('div');
+  div.className = 'verdict-card';
+  div.style.animationDelay = `${delay}s`;
+  div.innerHTML = `
+    <div class="verdict-header">
+      <div class="verdict-icon">⚖️</div>
+      <div class="verdict-title">Judge's Verdict</div>
+    </div>
+    <div class="verdict-text">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+    <button class="btn-reset" onclick="resetDebate()">↩ New debate</button>
+  `;
+  arena.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+async function callClaude(systemPrompt, messages) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages
+    })
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function startDebate() {
+  const question = document.getElementById('question').value.trim();
+  if (!question) { showError('Please enter a question or decision to debate.'); return; }
+
+  document.getElementById('errorMsg').style.display = 'none';
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('debate-arena').style.display = 'block';
+  document.getElementById('debate-arena').innerHTML = '';
+
+  const rounds = parseInt(document.getElementById('rounds').value);
+  const alphaHistory = [];
+  const betaHistory = [];
+
+  const ALPHA_SYSTEM = `You are Agent Alpha, a sharp devil's advocate. Your role is to challenge conventional wisdom, expose hidden risks, and argue the contrarian position on any decision. Be specific, cite real consequences, use data where possible. Keep responses to 3-4 punchy paragraphs. Format key points with **bold**. Never concede easily.`;
+
+  const BETA_SYSTEM = `You are Agent Beta, a pragmatic realist. Your role is to defend the conventional, safer, or more traditional path. Ground your arguments in real-world constraints, risk management, and proven outcomes. Keep responses to 3-4 punchy paragraphs. Format key points with **bold**. Directly counter Alpha's specific points.`;
+
+  const JUDGE_SYSTEM = `You are an impartial judge synthesising a multi-agent debate. Your job is to give the human a clear, actionable conclusion — not a wishy-washy "both sides have merit" answer. Pick a winner, explain why, and give a concrete recommendation. Be direct. Format key conclusions with **bold**. End with one sentence: the single most important thing the person should do next.`;
+
+  try {
+    // Round 1: Alpha opens
+    for (let round = 1; round <= rounds; round++) {
+      appendRoundHeader(round, rounds);
+
+      // Alpha's turn
+      setStatus(`Agent Alpha is forming arguments... (Round ${round})`);
+      let alphaPrompt;
+      if (round === 1) {
+        alphaPrompt = `The decision being debated: "${question}"\n\nOpen the debate as the devil's advocate. Challenge the conventional approach to this decision.`;
+      } else {
+        alphaPrompt = `The decision: "${question}"\n\nThis is round ${round}. Based on Beta's previous arguments, sharpen your counterpoints and introduce new angles.`;
+      }
+      alphaHistory.push({ role: 'user', content: alphaPrompt });
+      const alphaReply = await callClaude(ALPHA_SYSTEM, alphaHistory);
+      alphaHistory.push({ role: 'assistant', content: alphaReply });
+      appendMessage('agent-a', 'AGENT ALPHA', alphaReply);
+
+      // Beta's turn
+      setStatus(`Agent Beta is preparing rebuttal... (Round ${round})`);
+      const betaPrompt = round === 1
+        ? `The decision being debated: "${question}"\n\nAlpha just argued:\n"${alphaReply}"\n\nNow defend the pragmatic, conventional approach. Counter Alpha's specific points.`
+        : `The decision: "${question}"\n\nAlpha argued in round ${round}:\n"${alphaReply}"\n\nReinforce your position and dismantle Alpha's new points.`;
+      betaHistory.push({ role: 'user', content: betaPrompt });
+      const betaReply = await callClaude(BETA_SYSTEM, betaHistory);
+      betaHistory.push({ role: 'assistant', content: betaReply });
+      appendMessage('agent-b', 'AGENT BETA', betaReply);
+    }
+
+    // Judge
+    setStatus('Judge is synthesising the debate...');
+    const debateSummary = alphaHistory
+      .filter(m => m.role === 'assistant')
+      .map((m, i) => `Alpha Round ${i+1}:\n${m.content}`)
+      .join('\n\n') + '\n\n' +
+      betaHistory
+      .filter(m => m.role === 'assistant')
+      .map((m, i) => `Beta Round ${i+1}:\n${m.content}`)
+      .join('\n\n');
+
+    const judgeMessages = [{
+      role: 'user',
+      content: `Decision being debated: "${question}"\n\nFull debate transcript:\n${debateSummary}\n\nNow deliver your verdict. Who made the stronger case? What should the person actually do?`
+    }];
+    const verdict = await callClaude(JUDGE_SYSTEM, judgeMessages);
+    hideStatus();
+    appendVerdict(verdict);
+
+  } catch (err) {
+    hideStatus();
+    showError('Something went wrong: ' + err.message);
+    document.getElementById('startBtn').disabled = false;
+  }
+}
+
+function resetDebate() {
+  document.getElementById('debate-arena').innerHTML = '';
+  document.getElementById('debate-arena').style.display = 'none';
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('question').value = '';
+  document.getElementById('errorMsg').style.display = 'none';
+}
+</script>
+</body>
+</html>
