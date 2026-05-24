@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const API_KEY = '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';
+const API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // ---------- Rate limiting store ----------
 const ipDebateCount = {};   // { ip: { count, date } }
